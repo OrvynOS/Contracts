@@ -1,0 +1,32 @@
+[profile.default]
+src = "src"
+test = "test"
+script = "script"
+out = "out"
+libs = ["lib"]
+solc_version = "0.8.28"
+# BSC runs Prague-level EVM features, including the EIP-2537 BLS12-381 precompiles (checked on
+# mainnet with eth_call to 0x0b, 0x0f and 0x10); OrvynRNG needs them.
+evm_version = "prague"
+optimizer = true
+optimizer_runs = 10_000
+via_ir = false
+# Tests read their proof fixtures.
+fs_permissions = [{ access = "read", path = "./test/fixtures" }]
+remappings = [
+  "@openzeppelin/contracts/=lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/",
+  "@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/",
+  "forge-std/=lib/forge-std/src/",
+  "poseidon-solidity/=lib/poseidon-solidity/contracts/",
+]
+
+[rpc_endpoints]
+bsc = "${BSC_RPC_URL}"
+bsc_testnet = "${BSC_TESTNET_RPC_URL}"
+
+[etherscan]
+bsc = { key = "${BSCSCAN_API_KEY}", chain = 56 }
+bsc_testnet = { key = "${BSCSCAN_API_KEY}", chain = 97 }
+
+[fmt]
+line_length = 120

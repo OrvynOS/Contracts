@@ -1,0 +1,9 @@
+out/
+cache/
+lib/
+circuits/build/
+circuits/node_modules/
+.env
+broadcast/*/31337/
+AGENTS.md
+CLAUDE.md
