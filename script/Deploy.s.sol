@@ -5,6 +5,7 @@ import {Script, console} from "forge-std/Script.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {OrvynRegistry} from "../src/OrvynRegistry.sol";
 import {OrvynJobs} from "../src/OrvynJobs.sol";
+import {OrvynID, IAgentIdRegistry} from "../src/OrvynID.sol";
 import {OrvynPay} from "../src/pay/OrvynPay.sol";
 import {OrvynShieldedPool, IVerifier} from "../src/pay/OrvynShieldedPool.sol";
 import {IAgentId} from "../src/pay/AgentIdGated.sol";
@@ -44,12 +45,13 @@ contract Deploy is Script {
         console.log("OrvynRegistry", address(deployRegistry()));
         console.log("OrvynJobs    ", address(deployJobs()));
         console.log("OrvynPay     ", address(deployPay()));
+        console.log("OrvynID      ", address(deployOrvynId()));
         if (vm.envOr("ORVYN_DEPLOY_POOL", false)) deployPool();
         vm.stopBroadcast();
     }
 
     /// The deployer configures each contract, then hands ownership to `owner` (2-step: the owner
-    /// must call acceptOwnership).
+    /// must call acceptOwnership). When the deployer is the owner, it simply keeps it.
     function deployRegistry() internal returns (OrvynRegistry registry) {
         uint256 monthlyUsd = vm.envOr("ORVYN_MONTHLY_PRICE", uint256(20e18));
         registry = OrvynRegistry(
@@ -64,7 +66,7 @@ contract Deploy is Script {
         registry.addOperator(operator);
         address creditor = vm.envOr("ORVYN_BINANCE_PAY_CREDITOR", address(0));
         if (creditor != address(0)) registry.addCreditor(creditor);
-        registry.transferOwnership(owner);
+        if (owner != deployer) registry.transferOwnership(owner);
     }
 
     function deployJobs() internal returns (OrvynJobs jobs) {
@@ -77,7 +79,17 @@ contract Deploy is Script {
         jobs.setToken(usdc, 1e18);
         jobs.setToken(address(0), 0.002 ether);
         jobs.addOperator(operator);
-        jobs.transferOwnership(owner);
+        if (owner != deployer) jobs.transferOwnership(owner);
+    }
+
+    /// OrvynID: each agent's non-transferable identity NFT. The operator issues and updates them.
+    function deployOrvynId() internal returns (OrvynID orvynId) {
+        string memory rootDomain = vm.envOr("ORVYN_ROOT_DOMAIN", string("orvyn.cash"));
+        orvynId = OrvynID(
+            address(new ERC1967Proxy(address(new OrvynID()), abi.encodeCall(OrvynID.initialize, (deployer, IAgentIdRegistry(agentId), rootDomain))))
+        );
+        orvynId.setIssuer(operator, true);
+        if (owner != deployer) orvynId.transferOwnership(owner);
     }
 
     function deployPay() internal returns (OrvynPay pay) {
@@ -95,7 +107,7 @@ contract Deploy is Script {
         pool.setAsset(usdt, true, 1_000e18);
         pool.setAsset(usdc, true, 1_000e18);
         pool.setAsset(address(0), true, 2 ether);
-        pool.transferOwnership(owner);
+        if (owner != deployer) pool.transferOwnership(owner);
         console.log("Groth16Verifier  ", verifier);
         console.log("OrvynShieldedPool", address(pool));
     }

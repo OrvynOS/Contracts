@@ -7,3 +7,4 @@ circuits/node_modules/
 broadcast/*/31337/
 AGENTS.md
 CLAUDE.md
+broadcast/*/*/dry-run/
